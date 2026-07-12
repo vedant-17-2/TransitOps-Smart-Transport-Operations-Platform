@@ -1,0 +1,23 @@
+<!-- KPI Card Component -->
+{# Usage: {% include 'components/kpi_card.html' with title="Active Vehicles" value=10 icon="bi-truck" color="primary" trend="+5%" trend_up=True %} #}
+<div class="col">
+    <div class="card kpi-card kpi-card-{{ color|default:'primary' }}">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="kpi-label mb-1">{{ title }}</p>
+                    <h2 class="kpi-value mb-0">{{ value }}</h2>
+                    {% if trend %}
+                    <small class="kpi-trend {% if trend_up %}text-success{% else %}text-danger{% endif %}">
+                        <i class="bi {% if trend_up %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                        {{ trend }}
+                    </small>
+                    {% endif %}
+                </div>
+                <div class="kpi-icon-wrapper kpi-icon-{{ color|default:'primary' }}">
+                    <i class="bi {{ icon }}"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
