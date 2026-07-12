@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from core.mixins import RoleRequiredMixin
+from core.mixins import RoleRequiredMixin, CSVExportMixin
 from django.views.generic import ListView, CreateView
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -81,4 +81,5 @@ class ExpenseCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     def form_valid(self, form):
         messages.success(self.request, 'Expense logged successfully.')
         return super().form_valid(form)
+
 
