@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Fuel Log{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'fuel:fuel_list' %}">Fuel Logs</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Add</li>
+{% endblock %}
+
+{% block page_header %}Add Fuel Log{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 col-xl-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Fuel Entry Details</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    {% crispy form %}
+                    <div class="mt-4 pt-3 border-top">
+                        <a href="{% url 'fuel:fuel_list' %}" class="btn btn-outline-secondary me-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block breadcrumb %}{% endblock %}
+
+{% block page_header %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Operations Overview</h2>
+        <p class="page-subtitle">Welcome back! Here's what's happening with your fleet today.</p>
+    </div>
+</div>
+
+<!-- KPI Cards Row -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
+    <div class="col">
+        {% include 'components/kpi_card.html' with title='Total Vehicles' value=total_vehicles icon='bi-truck' color='primary' %}
+    </div>
+    <div class="col">
+        {% include 'components/kpi_card.html' with title='Available Vehicles' value=available_vehicles icon='bi-check-circle' color='success' %}
+    </div>
+    <div class="col">
+        {% include 'components/kpi_card.html' with title='In Maintenance' value=in_shop_vehicles icon='bi-wrench-adjustable' color='warning' %}
+    </div>
+    <div class="col">
+        {% include 'components/kpi_card.html' with title='Active Trips' value=active_trips icon='bi-signpost-2' color='info' %}
+    </div>
+    <div class="col">
+        {% include 'components/kpi_card.html' with title='Drivers on Duty' value=on_duty_drivers icon='bi-person-badge' color='primary' %}
+    </div>
+    <div class="col">
+        {% include 'components/kpi_card.html' with title='Fleet Utilization' value=fleet_utilization|floatformat:1 icon='bi-speedometer2' color='success' suffix='%' %}
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header border-0 bg-transparent pt-4 pb-0">
+                <h5 class="mb-0">Vehicle Status</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px; position: relative;">
+                    <canvas id="vehicleStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header border-0 bg-transparent pt-4 pb-0">
+                <h5 class="mb-0">Monthly Trip Volume</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px; position: relative;">
+                    <canvas id="monthlyTripsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Trips -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Trips</h5>
+                <a href="{% url 'trips:trip_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_trips %}
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Trip #</th>
+                                    <th>Vehicle</th>
+                                    <th>Driver</th>
+                                    <th>Route</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trip in recent_trips %}
+                                    <tr>
+                                        <td><a href="{% url 'trips:trip_detail' trip.pk %}" class="fw-bold">#{{ trip.pk }}</a></td>
+                                        <td>{{ trip.vehicle.registration_number }}</td>
+                                        <td>{{ trip.driver.name }}</td>
+                                        <td>{{ trip.source }} &rarr; {{ trip.destination }}</td>
+                                        <td><span class="badge {{ trip.status_css_class }}">{{ trip.get_status_display }}</span></td>
+                                        <td>{{ trip.start_date|date:"M d, Y" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-5 text-muted">
+                        <i class="bi bi-signpost-2 fs-1 mb-3 d-block"></i>
+                        <p class="mb-0">No recent trips found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JSON Data for Charts -->
+{{ vehicle_status_data|json_script:"vehicle-status-data" }}
+{{ monthly_trips_data|json_script:"monthly-trips-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse JSON data
+        const vehicleDataRaw = document.getElementById('vehicle-status-data').textContent;
+        const monthlyTripsRaw = document.getElementById('monthly-trips-data').textContent;
+        
+        let vehicleData = {labels: [], data: [], colors: []};
+        let monthlyTripsData = {labels: [], data: []};
+        
+        try {
+            vehicleData = JSON.parse(vehicleDataRaw);
+            monthlyTripsData = JSON.parse(monthlyTripsRaw);
+        } catch (e) {
+            console.error("Error parsing chart data", e);
+        }
+
+        // Vehicle Status Doughnut Chart
+        const ctxVehicle = document.getElementById('vehicleStatusChart');
+        if (ctxVehicle && vehicleData.data && vehicleData.data.length > 0) {
+            createChart(ctxVehicle, 'doughnut', vehicleData.labels, vehicleData.data, {
+                backgroundColor: vehicleData.colors,
+                borderWidth: 0,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' }
+                    }
+                }
+            });
+        }
+
+        // Monthly Trips Bar Chart
+        const ctxTrips = document.getElementById('monthlyTripsChart');
+        if (ctxTrips && monthlyTripsData.data && monthlyTripsData.data.length > 0) {
+            createChart(ctxTrips, 'bar', monthlyTripsData.labels, monthlyTripsData.data, {
+                backgroundColor: CHART_COLORS.primary,
+                borderRadius: 4,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, border: { display: false } },
+                    x: { grid: { display: false }, border: { display: false } }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
