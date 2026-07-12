@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Fuel Logs{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item active" aria-current="page">Fuel Logs</li>
+{% endblock %}
+
+{% block page_header %}Fuel Logs{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="page-title">Fuel Logs</h2>
+        <p class="page-subtitle">Track fuel consumption and costs</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="?{{ request.GET.urlencode }}&export=csv" class="btn btn-outline-success">
+            <i class="bi bi-filetype-csv"></i> Export CSV
+        </a>
+        <a href="{% url 'fuel:expense_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-wallet2"></i> View Expenses
+        </a>
+        {% if request.user.is_superuser or request.user.profile.role == 'fleet_manager' %}
+        <a href="{% url 'fuel:fuel_create' %}" class="btn btn-primary">
+            <i class="bi bi-fuel-pump"></i> Add Fuel Log
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div id="export-content">
+
+<div class="filter-bar" data-html2canvas-ignore="true">
+    <form method="get" class="row g-3 align-items-center">
+        <div class="col-auto">
+            <select name="vehicle" class="form-select">
+                <option value="">All Vehicles</option>
+                {% for v in vehicles %}
+                    <option value="{{ v.id }}" {% if request.GET.vehicle == v.id|stringformat:"s" %}selected{% endif %}>{{ v.registration_number }} - {{ v.vehicle_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary">Filter</button>
+            <a href="{% url 'fuel:fuel_list' %}" class="btn btn-link text-muted">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    {% if object_list %}
+        <div class="table-responsive">
+            <table class="table searchable-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vehicle</th>
+                        <th>Trip</th>
+                        <th>Quantity (L)</th>
+                        <th>Cost (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in object_list %}
+                        <tr>
+                            <td>{{ log.date|date:"M d, Y" }}</td>
+                            <td><a href="{% url 'fleet:vehicle_detail' log.vehicle.pk %}" class="fw-bold text-decoration-none">{{ log.vehicle.registration_number }}</a></td>
+                            <td>
+                                {% if log.trip %}
+                                    <a href="{% url 'trips:trip_detail' log.trip.pk %}">#{{ log.trip.pk }}</a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.fuel_quantity|floatformat:1 }} L</td>
+                            <td class="fw-medium text-danger">₹{{ log.cost|intcomma }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div data-html2canvas-ignore="true">
+            {% include 'components/pagination.html' %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-droplet-half text-muted" style="font-size: 3rem;"></i>
+            <h5 class="mt-3">No fuel logs found</h5>
+            <p class="text-muted">Keep track of your fleet's fuel consumption.</p>
+            {% if request.user.is_superuser or request.user.profile.role == 'fleet_manager' %}
+            <a href="{% url 'fuel:fuel_create' %}" class="btn btn-primary mt-2">Add Fuel Log</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}
+

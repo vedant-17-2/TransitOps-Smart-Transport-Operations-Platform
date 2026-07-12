@@ -1,0 +1,24 @@
+<!-- Django Messages Display (Toasts) -->
+{% if messages %}
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    {% for message in messages %}
+    <div class="toast custom-toast {% if message.tags == 'success' %}success{% elif message.tags == 'danger' or message.tags == 'error' %}error{% endif %} align-items-center show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+        <div class="toast-body">
+            {% if message.tags == 'success' %}
+                <i class="bi bi-check-circle-fill toast-icon"></i>
+            {% elif message.tags == 'danger' or message.tags == 'error' %}
+                <i class="bi bi-exclamation-triangle-fill toast-icon text-danger"></i>
+            {% elif message.tags == 'warning' %}
+                <i class="bi bi-exclamation-circle-fill toast-icon text-warning"></i>
+            {% else %}
+                <i class="bi bi-info-circle-fill toast-icon text-info"></i>
+            {% endif %}
+            <div class="flex-grow-1">
+                {{ message }}
+            </div>
+            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ object.registration_number }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'fleet:vehicle_list' %}">Vehicles</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ object.registration_number }}</li>
+{% endblock %}
+
+{% block page_header %}Vehicle Details{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card detail-card shadow-sm border-0">
+            <div class="detail-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-truck fs-3"></i>
+                    </div>
+                    <div>
+                        <h2 class="mb-0">{{ object.registration_number }}</h2>
+                        <p class="mb-0 opacity-75 fs-6">{{ object.vehicle_name }}</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-white text-dark py-2 px-3 fs-6 rounded-pill shadow-sm">
+                        {{ object.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">Type</div>
+                        <div class="detail-value">{{ object.get_vehicle_type_display }}</div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">Capacity</div>
+                        <div class="detail-value">{{ object.capacity|floatformat:1 }} tons</div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">Current Odometer</div>
+                        <div class="detail-value">{{ object.current_odometer|intcomma }} km</div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">Acquisition Cost</div>
+                        <div class="detail-value">₹{{ object.acquisition_cost|intcomma }}</div>
+                    </div>
+                    <div class="col-sm-6 col-md-3 mt-4">
+                        <div class="detail-label">Insurance Expiry</div>
+                        <div class="detail-value">
+                            {% if object.insurance_expiry %}
+                                <span class="fw-bold">{{ object.insurance_expiry|date:"M d, Y" }}</span>
+                            {% else %}
+                                <span class="text-muted">Not Set</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3 mt-4">
+                        <div class="detail-label">RC Expiry</div>
+                        <div class="detail-value">
+                            {% if object.rc_expiry %}
+                                <span class="fw-bold">{{ object.rc_expiry|date:"M d, Y" }}</span>
+                            {% else %}
+                                <span class="text-muted">Not Set</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3 mt-4">
+                        <div class="detail-label">QR Code</div>
+                        <div class="detail-value">
+                            {% if object.qr_code %}
+                                <a href="{{ object.qr_code.url }}" target="_blank">
+                                    <img src="{{ object.qr_code.url }}" alt="QR Code" width="80" class="img-thumbnail shadow-sm">
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No QR</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        Added on {{ object.created_at|date:"M d, Y" }}
+                    </div>
+                    <div>
+                        <a href="{% url 'fleet:vehicle_list' %}" class="btn btn-outline-secondary me-2">Back to List</a>
+                        {% if request.user.is_superuser or request.user.profile.role == 'fleet_manager' %}
+                        <a href="{% url 'fleet:vehicle_update' object.pk %}" class="btn btn-primary">Edit Vehicle</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Trip History -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-signpost-2 me-2 text-primary"></i> Recent Trips</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_trips %}
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Trip #</th>
+                                    <th>Route</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trip in recent_trips %}
+                                    <tr>
+                                        <td><a href="{% url 'trips:trip_detail' trip.pk %}">#{{ trip.pk }}</a></td>
+                                        <td><small>{{ trip.source }} &rarr; {{ trip.destination }}</small></td>
+                                        <td><span class="badge {{ trip.status_css_class }}">{{ trip.get_status_display }}</span></td>
+                                        <td><small>{{ trip.start_date|date:"M d" }}</small></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-4 text-muted">
+                        <i class="bi bi-clock-history fs-2 mb-2 d-block"></i>
+                        <p class="mb-0">No trips recorded yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance History -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-wrench-adjustable me-2 text-warning"></i> Recent Maintenance</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_maintenance %}
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Cost</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for maint in recent_maintenance %}
+                                    <tr>
+                                        <td>{{ maint.get_maintenance_type_display }}</td>
+                                        <td>₹{{ maint.cost|intcomma }}</td>
+                                        <td><span class="badge {{ maint.status_css_class }}">{{ maint.get_status_display }}</span></td>
+                                        <td><small>{{ maint.date|date:"M d, Y" }}</small></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-4 text-muted">
+                        <i class="bi bi-clipboard2-check fs-2 mb-2 d-block"></i>
+                        <p class="mb-0">No maintenance records found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

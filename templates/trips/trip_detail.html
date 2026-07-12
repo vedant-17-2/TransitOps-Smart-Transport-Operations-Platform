@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Trip #{{ object.pk }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'trips:trip_list' %}">Trips</a></li>
+    <li class="breadcrumb-item active" aria-current="page">#{{ object.pk }}</li>
+{% endblock %}
+
+{% block page_header %}Trip Details{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card detail-card shadow-sm border-0">
+            <div class="detail-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-signpost-split fs-3"></i>
+                    </div>
+                    <div>
+                        <h2 class="mb-0">Trip #{{ object.pk }}</h2>
+                        <p class="mb-0 opacity-75 fs-6">{{ object.source }} &rarr; {{ object.destination }}</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-white text-dark py-2 px-3 fs-6 rounded-pill shadow-sm">
+                        {{ object.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                
+                <!-- Trip Progress Timeline -->
+                <div class="trip-timeline mb-5 mt-3 px-4">
+                    <!-- Pending Node -->
+                    <div class="trip-timeline-node {% if object.status == 'pending' or object.status == 'dispatched' or object.status == 'in_progress' or object.status == 'completed' %}completed{% endif %}">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <div class="trip-timeline-label">Pending</div>
+                    </div>
+                    <!-- Dispatched Node -->
+                    <div class="trip-timeline-node {% if object.status == 'dispatched' %}active{% elif object.status == 'in_progress' or object.status == 'completed' %}completed{% endif %}">
+                        <i class="bi bi-send"></i>
+                        <div class="trip-timeline-label">Dispatched</div>
+                    </div>
+                    <!-- In Progress Node -->
+                    <div class="trip-timeline-node {% if object.status == 'in_progress' %}active{% elif object.status == 'completed' %}completed{% endif %}">
+                        <i class="bi bi-truck-front"></i>
+                        <div class="trip-timeline-label">In Progress</div>
+                    </div>
+                    <!-- Completed Node -->
+                    <div class="trip-timeline-node {% if object.status == 'completed' %}completed{% endif %}">
+                        <i class="bi bi-check-lg"></i>
+                        <div class="trip-timeline-label">Completed</div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded d-flex align-items-center gap-3">
+                            <i class="bi bi-truck fs-1 text-primary"></i>
+                            <div>
+                                <h6 class="mb-1 text-muted">Assigned Vehicle</h6>
+                                <h5 class="mb-0"><a href="{% url 'fleet:vehicle_detail' object.vehicle.pk %}" class="text-decoration-none">{{ object.vehicle.registration_number }}</a></h5>
+                                <small class="text-muted">{{ object.vehicle.vehicle_name }} ({{ object.vehicle.get_vehicle_type_display }})</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded d-flex align-items-center gap-3">
+                            <i class="bi bi-person-badge fs-1 text-primary"></i>
+                            <div>
+                                <h6 class="mb-1 text-muted">Assigned Driver</h6>
+                                <h5 class="mb-0"><a href="{% url 'drivers:driver_detail' object.driver.pk %}" class="text-decoration-none">{{ object.driver.name }}</a></h5>
+                                <small class="text-muted">License: {{ object.driver.license_number }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">Cargo Weight</div>
+                        <div class="detail-value">{{ object.cargo_weight|floatformat:1 }} tons</div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">Distance</div>
+                        <div class="detail-value">{{ object.distance|intcomma }} km</div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">Start Date</div>
+                        <div class="detail-value">{{ object.start_date|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="detail-label">End Date</div>
+                        <div class="detail-value">
+                            {% if object.end_date %}
+                                {{ object.end_date|date:"M d, Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        Created by {{ object.created_by.get_full_name|default:object.created_by.username }}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'trips:trip_list' %}" class="btn btn-outline-secondary">Back to List</a>
+                        
+                        {% if object.status == 'dispatched' or object.status == 'in_progress' %}
+                        {% if request.user.is_superuser or request.user.profile.role == 'dispatcher' %}
+                        <form method="post" action="{% url 'trips:trip_complete' object.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success" data-confirm="Mark this trip as completed?">
+                                <i class="bi bi-check-circle me-1"></i> Complete Trip
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                        
+                        {% if object.status != 'completed' and object.status != 'cancelled' %}
+                        {% if request.user.is_superuser or request.user.profile.role == 'dispatcher' %}
+                        <form method="post" action="{% url 'trips:trip_cancel' object.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" data-confirm="Cancel this trip?">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Trip
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Fuel Logs -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-fuel-pump me-2 text-info"></i> Associated Fuel Logs</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if fuel_logs %}
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Quantity</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in fuel_logs %}
+                                    <tr>
+                                        <td>{{ log.date|date:"M d, Y" }}</td>
+                                        <td>{{ log.fuel_quantity }} L</td>
+                                        <td>₹{{ log.cost|intcomma }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-4 text-muted">
+                        <i class="bi bi-droplet-half fs-2 mb-2 d-block"></i>
+                        <p class="mb-0">No fuel logs for this trip.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
